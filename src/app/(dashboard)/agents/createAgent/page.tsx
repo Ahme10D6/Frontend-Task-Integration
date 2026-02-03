@@ -16,6 +16,15 @@ import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Slider } from "@/components/ui/slider";
 import { Separator } from "@/components/ui/separator";
+import { Switch } from "@/components/ui/switch";
+import {
+  Field,
+  FieldContent,
+  FieldDescription,
+  FieldGroup,
+  FieldLabel,
+  FieldTitle,
+} from "@/components/ui/field";
 import {
   Card,
   CardContent,
@@ -496,7 +505,49 @@ function CreateAgentContent() {
             </div>
           </CollapsibleSection>
 
-          {/* Section 6: Advanced Settings */}
+          {/* Section 6: Tools */}
+          <CollapsibleSection
+            title="Tools"
+            description="Tools that allow the AI agent to perform call-handling actions and manage session control."
+          >
+            <FieldGroup className="w-full">
+              <FieldLabel htmlFor="switch-hangup">
+                <Field orientation="horizontal" className="items-center">
+                  <FieldContent>
+                    <FieldTitle>Allow hang up</FieldTitle>
+                    <FieldDescription>
+                      Select if you would like to allow the agent to hang up the call
+                    </FieldDescription>
+                  </FieldContent>
+                  <Switch id="switch-hangup" />
+                </Field>
+              </FieldLabel>
+              <FieldLabel htmlFor="switch-callback">
+                <Field orientation="horizontal" className="items-center">
+                  <FieldContent>
+                    <FieldTitle>Allow callback</FieldTitle>
+                    <FieldDescription>
+                      Select if you would like to allow the agent to make callbacks
+                    </FieldDescription>
+                  </FieldContent>
+                  <Switch id="switch-callback" />
+                </Field>
+              </FieldLabel>
+              <FieldLabel htmlFor="switch-transfer">
+                <Field orientation="horizontal" className="items-center">
+                  <FieldContent>
+                    <FieldTitle>Live transfer</FieldTitle>
+                    <FieldDescription>
+                      Select if you want to transfer the call to a human agent
+                    </FieldDescription>
+                  </FieldContent>
+                  <Switch id="switch-transfer" />
+                </Field>
+              </FieldLabel>
+            </FieldGroup>
+          </CollapsibleSection>
+
+          {/* Section 7: Advanced Settings */}
           <CollapsibleSection
             title="Advanced Settings"
             description="Configure custom keys, tags, and live APIs for this agent."
