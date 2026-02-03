@@ -4,8 +4,25 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Copy, EllipsisVertical, Pencil, Plus, Search, Trash2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   Table,
   TableBody,
@@ -112,6 +129,7 @@ const modelVariant: Record<string, "default" | "secondary" | "outline"> = {
 export default function AgentsPage() {
   const router = useRouter();
   const [page, setPage] = useState(1);
+  const [dialogOpen, setDialogOpen] = useState(false);
   const totalPages = Math.ceil(agents.length / PAGE_SIZE);
   const paginatedAgents = agents.slice(
     (page - 1) * PAGE_SIZE,
@@ -122,10 +140,60 @@ export default function AgentsPage() {
     <div className="flex flex-1 flex-col gap-6 p-6">
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold">Agents</h1>
-        <Button>
-          <Plus className="mr-2 h-4 w-4" />
-          New Agent
-        </Button>
+        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+          <DialogTrigger asChild>
+            <Button>
+              <Plus className="mr-2 h-4 w-4" />
+              New Agent
+            </Button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Create New Agent</DialogTitle>
+              <DialogDescription>
+                Set up a new AI agent for your team.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-2">
+              <div className="space-y-2">
+                <Label htmlFor="agent-name">Agent Name</Label>
+                <Input id="agent-name" placeholder="e.g. Sales Assistant" />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="agent-description">Description</Label>
+                <Input
+                  id="agent-description"
+                  placeholder="e.g. Handles inbound sales inquiries"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Call Type</Label>
+                <Select>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Select a call type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="inbound">
+                      Inbound (Receive Calls)
+                    </SelectItem>
+                    <SelectItem value="outbound">
+                      Outbound (Make Calls)
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() => setDialogOpen(false)}
+              >
+                Cancel
+              </Button>
+              <Button>Create Agent</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
 
       <div className="relative max-w-sm">
