@@ -45,6 +45,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useReferenceData } from "@/hooks/useReferenceData";
 import { useUpload } from "@/hooks/useUpload";
 import type { Language, Voice, Prompt, Model } from "@/types/reference";
@@ -640,21 +641,25 @@ export function AgentForm({ mode, initialData }: AgentFormProps) {
                 <Label>
                   Language <span className="text-destructive">*</span>
                 </Label>
-                <Select value={language} onValueChange={(value) => {
-                  setLanguage(value);
-                  setTouched(prev => ({ ...prev, language: true }));
-                }}>
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Select language" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {languages.map((language) => (
-                      <SelectItem key={language.id} value={language.id}>
-                        {language.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                {languagesLoading ? (
+                  <Skeleton className="h-9 w-full" />
+                ) : (
+                  <Select value={language} onValueChange={(value) => {
+                    setLanguage(value);
+                    setTouched(prev => ({ ...prev, language: true }));
+                  }}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Select language" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {languages.map((language) => (
+                        <SelectItem key={language.id} value={language.id}>
+                          {language.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
                 {errors.language && touched.language && (
                   <p className="text-xs text-destructive mt-1">
                     {errors.language}
@@ -666,24 +671,28 @@ export function AgentForm({ mode, initialData }: AgentFormProps) {
                 <Label>
                   Voice <span className="text-destructive">*</span>
                 </Label>
-                <Select value={voice} onValueChange={(value) => {
-                  setVoice(value);
-                  setTouched(prev => ({ ...prev, voice: true }));
-                }}>
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Select voice" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {voices.map(voice => (
-                      <SelectItem key={voice.id} value={voice.id}>
-                        <div className="flex items-center gap-2">
-                          <span>{voice.name}</span>
-                          <Badge variant="secondary">{voice.tag}</Badge>
-                        </div>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                {voicesLoading ? (
+                  <Skeleton className="h-9 w-full" />
+                ) : (
+                  <Select value={voice} onValueChange={(value) => {
+                    setVoice(value);
+                    setTouched(prev => ({ ...prev, voice: true }));
+                  }}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Select voice" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {voices.map(voice => (
+                        <SelectItem key={voice.id} value={voice.id}>
+                          <div className="flex items-center gap-2">
+                            <span>{voice.name}</span>
+                            <Badge variant="secondary">{voice.tag}</Badge>
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
                 {errors.voice && touched.voice && (
                   <p className="text-xs text-destructive mt-1">
                     {errors.voice}
@@ -695,21 +704,25 @@ export function AgentForm({ mode, initialData }: AgentFormProps) {
                 <Label>
                   Prompt <span className="text-destructive">*</span>
                 </Label>
-                <Select value={prompt} onValueChange={(value) => {
-                  setPrompt(value);
-                  setTouched(prev => ({ ...prev, prompt: true }));
-                }}>
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Select prompt" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {prompts.map((prompt) => (
-                      <SelectItem key={prompt.id} value={prompt.id}>
-                        {prompt.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                {promptsLoading ? (
+                  <Skeleton className="h-9 w-full" />
+                ) : (
+                  <Select value={prompt} onValueChange={(value) => {
+                    setPrompt(value);
+                    setTouched(prev => ({ ...prev, prompt: true }));
+                  }}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Select prompt" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {prompts.map((prompt) => (
+                        <SelectItem key={prompt.id} value={prompt.id}>
+                          {prompt.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
                 {errors.prompt && touched.prompt && (
                   <p className="text-xs text-destructive mt-1">
                     {errors.prompt}
@@ -721,21 +734,25 @@ export function AgentForm({ mode, initialData }: AgentFormProps) {
                 <Label>
                   Model <span className="text-destructive">*</span>
                 </Label>
-                <Select value={model} onValueChange={(value) => {
-                  setModel(value);
-                  setTouched(prev => ({ ...prev, model: true }));
-                }}>
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Select model" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {models.map((model) => (
-                      <SelectItem key={model.id} value={model.id}>
-                        {model.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                {modelsLoading ? (
+                  <Skeleton className="h-9 w-full" />
+                ) : (
+                  <Select value={model} onValueChange={(value) => {
+                    setModel(value);
+                    setTouched(prev => ({ ...prev, model: true }));
+                  }}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Select model" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {models.map((model) => (
+                        <SelectItem key={model.id} value={model.id}>
+                          {model.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
                 {errors.model && touched.model && (
                   <p className="text-xs text-destructive mt-1">
                     {errors.model}
