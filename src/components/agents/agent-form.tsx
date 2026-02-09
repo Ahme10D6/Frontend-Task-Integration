@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
+import Swal from "sweetalert2";
 import {
   ChevronDown,
   Upload,
@@ -49,7 +50,6 @@ import { useUpload } from "@/hooks/useUpload";
 import type { Language, Voice, Prompt, Model } from "@/types/reference";
 import type { Attachment } from "@/types/attachment";
 import { api } from "@/lib/api";
-import { toast } from "react-hot-toast";
 
 interface UploadedFile {
   name: string;
@@ -213,6 +213,121 @@ export function AgentForm({ mode, initialData }: AgentFormProps) {
   const [testGender, setTestGender] = useState("");
   const [testPhone, setTestPhone] = useState("");
   const [calling, setCalling] = useState(false);
+  type FormErrors = Partial<Record<keyof typeof REQUIRED_FIELDS, string>>;
+  type TouchedFields = Partial<Record<keyof typeof REQUIRED_FIELDS, boolean>>;
+  const [touched, setTouched] = useState<TouchedFields>({});
+  const [errors, setErrors] = useState<FormErrors>({});
+
+  // Unsaved changes: capture initial snapshot once, then compare current state
+  type FormSnapshot = {
+    agentName: string;
+    description: string;
+    callType: string;
+    language: string;
+    voice: string;
+    prompt: string;
+    model: string;
+    latency: number;
+    speed: number;
+    callScript: string;
+    serviceDescription: string;
+    allowHangUp: boolean;
+    allowCallback: boolean;
+    liveTransfer: boolean;
+    attachmentIds: string;
+  };
+  const getSnapshot = useCallback(
+    (): FormSnapshot => ({
+      agentName: agentName.trim(),
+      description: description.trim(),
+      callType,
+      language,
+      voice,
+      prompt,
+      model,
+      latency: latency[0],
+      speed: speed[0],
+      callScript: callScript.trim(),
+      serviceDescription: serviceDescription.trim(),
+      allowHangUp,
+      allowCallback,
+      liveTransfer,
+      attachmentIds: attachments.map((f) => f.id).sort().join(","),
+    }),
+    [
+      agentName,
+      description,
+      callType,
+      language,
+      voice,
+      prompt,
+      model,
+      latency,
+      speed,
+      callScript,
+      serviceDescription,
+      allowHangUp,
+      allowCallback,
+      liveTransfer,
+      attachments,
+    ]
+  );
+  const initialSnapshotRef = useRef<FormSnapshot | null>(null);
+  useEffect(() => {
+    if (initialSnapshotRef.current === null) {
+      initialSnapshotRef.current = getSnapshot();
+    }
+  }, [getSnapshot]);
+
+  const isDirty = (() => {
+    const initial = initialSnapshotRef.current;
+    if (!initial) return false;
+    const current = getSnapshot();
+    return (
+      initial.agentName !== current.agentName ||
+      initial.description !== current.description ||
+      initial.callType !== current.callType ||
+      initial.language !== current.language ||
+      initial.voice !== current.voice ||
+      initial.prompt !== current.prompt ||
+      initial.model !== current.model ||
+      initial.latency !== current.latency ||
+      initial.speed !== current.speed ||
+      initial.callScript !== current.callScript ||
+      initial.serviceDescription !== current.serviceDescription ||
+      initial.allowHangUp !== current.allowHangUp ||
+      initial.allowCallback !== current.allowCallback ||
+      initial.liveTransfer !== current.liveTransfer ||
+      initial.attachmentIds !== current.attachmentIds
+    );
+  })();
+
+  // Warn when navigating away in-app with unsaved changes (Swal). We do not use beforeunload
+  // so the native "Leave site?" dialog never appears; Swal cannot run during reload/close.
+  // In-app navigation (links, router) shows Swal. Reload/close tab will not warn.
+  useEffect(() => {
+    if (!isDirty) return;
+    const nav = typeof window !== "undefined" ? (window as { navigation?: { addEventListener: (t: string, h: (e: { destination: { url: string }; preventDefault: () => void }) => void) => void; removeEventListener: (t: string, h: (e: unknown) => void) => void } }).navigation : undefined;
+    if (!nav?.addEventListener) return;
+    const handleNavigate = (e: { destination: { url: string }; preventDefault: () => void }) => {
+      if (e.destination.url === window.location.href) return;
+      e.preventDefault();
+      void Swal.fire({
+        title: "Leave without saving?",
+        text: "You have unsaved changes. Are you sure you want to leave?",
+        icon: "warning",
+        showCancelButton: true,
+        confirmButtonText: "Yes, leave",
+        cancelButtonText: "Cancel",
+      }).then((result) => {
+        if (result.isConfirmed) {
+          window.location.href = e.destination.url;
+        }
+      });
+    };
+    nav.addEventListener("navigate", handleNavigate);
+    return () => nav.removeEventListener("navigate", handleNavigate as (e: unknown) => void);
+  }, [isDirty]);
 
   // Badge counts for required fields
   const basicSettingsMissing = [agentName, callType, language, voice, prompt, model].filter(
@@ -229,6 +344,17 @@ export function AgentForm({ mode, initialData }: AgentFormProps) {
     ".xlsx",
     ".xls",
   ];
+
+  // Form validation
+  const REQUIRED_FIELDS = {
+    agentName: "Agent name is required",
+    callType: "Call type is required",
+    language: "Language is required",
+    voice: "Voice is required",
+    prompt: "Prompt is required",
+    model: "Model is required",
+  };
+
 
   // File upload handler
   const handleFiles = useCallback(
@@ -276,31 +402,107 @@ export function AgentForm({ mode, initialData }: AgentFormProps) {
       if (mode === "create") {
         const { data } = await api.post("/agents", payload);
         setAgentId(data.id);
-        toast.success("Agent created successfully!");
+        void Swal.fire({
+          toast: true,
+          position: "top-end",
+          icon: "success",
+          title: "Agent created successfully!",
+          showConfirmButton: false,
+          timer: 3000,
+          timerProgressBar: true,
+        });
+        initialSnapshotRef.current = getSnapshot();
       } else if (mode === "edit" && agentId) {
         await api.put(`/agents/${agentId}`, payload);
-        toast.success("Agent updated successfully!");
+        void Swal.fire({
+          toast: true,
+          position: "top-end",
+          icon: "success",
+          title: "Agent updated successfully!",
+          showConfirmButton: false,
+          timer: 3000,
+          timerProgressBar: true,
+        });
+        initialSnapshotRef.current = getSnapshot();
       }
     } catch (error) {
-      toast.error("Failed to save agent.");
+      void Swal.fire({
+        toast: true,
+        position: "top-end",
+        icon: "error",
+        title: "Failed to save agent.",
+        showConfirmButton: false,
+        timer: 4000,
+        timerProgressBar: true,
+      });
       console.error(error);
     } finally {
       setSaving(false);
     }
   };
 
+  const getValidationErrors = useCallback((): FormErrors => {
+    const newErrors: FormErrors = {};
+    if (!agentName.trim()) newErrors.agentName = REQUIRED_FIELDS.agentName;
+    if (!callType) newErrors.callType = REQUIRED_FIELDS.callType;
+    if (!language) newErrors.language = REQUIRED_FIELDS.language;
+    if (!voice) newErrors.voice = REQUIRED_FIELDS.voice;
+    if (!prompt) newErrors.prompt = REQUIRED_FIELDS.prompt;
+    if (!model) newErrors.model = REQUIRED_FIELDS.model;
+    return newErrors;
+  }, [agentName, callType, language, voice, prompt, model]);
+
+  // Keep errors in sync with current values so the Save button state and messages update when user fixes fields
+  useEffect(() => {
+    setErrors(getValidationErrors());
+  }, [getValidationErrors]);
+
+  const validateForm = (): boolean => {
+    const newErrors = getValidationErrors();
+    setErrors(newErrors);
+    if (Object.keys(newErrors).length > 0) {
+      // Mark all required fields as touched so error messages show for every invalid field
+      setTouched({
+        agentName: true,
+        callType: true,
+        language: true,
+        voice: true,
+        prompt: true,
+        model: true,
+      });
+      return false;
+    }
+    return true;
+  };
+
   const handleTestCall = async () => {
     if (!agentId) {
-      // لو agent مش متحفظ بعد
+      // If agent is not saved yet, save it first
       await handleSave();
       if (!agentId) {
-        toast.error("Agent must be saved before test call.");
+        void Swal.fire({
+          toast: true,
+          position: "top-end",
+          icon: "error",
+          title: "Agent must be saved before test call.",
+          showConfirmButton: false,
+          timer: 4000,
+          timerProgressBar: true,
+        });
         return;
       }
     }
 
     if (!testFirstName || !testLastName || !testPhone || !testGender) {
-      toast.error("Please fill all test call fields.");
+      void Swal.fire({
+        toast: true,
+        position: "top-end",
+        icon: "error",
+        title: "Please fill all test call fields.",
+        showConfirmButton: false,
+        timer: 4000,
+        timerProgressBar: true,
+      });
       return;
     }
 
@@ -314,12 +516,36 @@ export function AgentForm({ mode, initialData }: AgentFormProps) {
       });
 
       if (data.success) {
-        toast.success(`Test call initiated (ID: ${data.callId})`);
+        void Swal.fire({
+          toast: true,
+          position: "top-end",
+          icon: "success",
+          title: `Test call initiated (ID: ${data.callId})`,
+          showConfirmButton: false,
+          timer: 3000,
+          timerProgressBar: true,
+        });
       } else {
-        toast.error("Test call failed to start.");
+        void Swal.fire({
+          toast: true,
+          position: "top-end",
+          icon: "error",
+          title: "Test call failed to start.",
+          showConfirmButton: false,
+          timer: 4000,
+          timerProgressBar: true,
+        });
       }
     } catch (error) {
-      toast.error("Test call failed.");
+      void Swal.fire({
+        toast: true,
+        position: "top-end",
+        icon: "error",
+        title: "Test call failed.",
+        showConfirmButton: false,
+        timer: 4000,
+        timerProgressBar: true,
+      });
       console.error(error);
     } finally {
       setCalling(false);
@@ -340,6 +566,8 @@ export function AgentForm({ mode, initialData }: AgentFormProps) {
     setIsDragging(false);
   };
 
+
+
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     setIsDragging(false);
@@ -353,7 +581,8 @@ export function AgentForm({ mode, initialData }: AgentFormProps) {
     <div className="flex flex-1 flex-col gap-6 p-6">
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold">{heading}</h1>
-        <Button onClick={handleSave} disabled={saving}>
+        <Button onClick={() => { if (!validateForm()) return; handleSave(); }}
+          disabled={saving}>
           {saving ? "Saving..." : saveLabel}
         </Button>
       </div>
@@ -378,7 +607,15 @@ export function AgentForm({ mode, initialData }: AgentFormProps) {
                   placeholder="e.g. Sales Assistant"
                   value={agentName}
                   onChange={(e) => setAgentName(e.target.value)}
+                  onBlur={() =>
+                    setTouched(prev => ({ ...prev, agentName: true }))
+                  }
                 />
+                {errors.agentName && touched.agentName && (
+                  <p className="text-xs text-destructive mt-1">
+                    {errors.agentName}
+                  </p>
+                )}
               </div>
 
               <div className="space-y-2">
@@ -389,13 +626,17 @@ export function AgentForm({ mode, initialData }: AgentFormProps) {
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                 />
+
               </div>
 
               <div className="space-y-2">
                 <Label>
                   Call Type <span className="text-destructive">*</span>
                 </Label>
-                <Select value={callType} onValueChange={setCallType}>
+                <Select value={callType} onValueChange={(value) => {
+                  setCallType(value);
+                  setTouched(prev => ({ ...prev, callType: true }));
+                }}>
                   <SelectTrigger className="w-full">
                     <SelectValue placeholder="Select call type" />
                   </SelectTrigger>
@@ -404,13 +645,21 @@ export function AgentForm({ mode, initialData }: AgentFormProps) {
                     <SelectItem value="outbound">Outbound (Make Calls)</SelectItem>
                   </SelectContent>
                 </Select>
+                {errors.callType && touched.callType && (
+                  <p className="text-xs text-destructive mt-1">
+                    {errors.callType}
+                  </p>
+                )}
               </div>
 
               <div className="space-y-2">
                 <Label>
                   Language <span className="text-destructive">*</span>
                 </Label>
-                <Select value={language} onValueChange={setLanguage}>
+                <Select value={language} onValueChange={(value) => {
+                  setLanguage(value);
+                  setTouched(prev => ({ ...prev, language: true }));
+                }}>
                   <SelectTrigger className="w-full">
                     <SelectValue placeholder="Select language" />
                   </SelectTrigger>
@@ -422,13 +671,21 @@ export function AgentForm({ mode, initialData }: AgentFormProps) {
                     ))}
                   </SelectContent>
                 </Select>
+                {errors.language && touched.language && (
+                  <p className="text-xs text-destructive mt-1">
+                    {errors.language}
+                  </p>
+                )}
               </div>
 
               <div className="space-y-2">
                 <Label>
                   Voice <span className="text-destructive">*</span>
                 </Label>
-                <Select value={voice} onValueChange={setVoice}>
+                <Select value={voice} onValueChange={(value) => {
+                  setVoice(value);
+                  setTouched(prev => ({ ...prev, voice: true }));
+                }}>
                   <SelectTrigger className="w-full">
                     <SelectValue placeholder="Select voice" />
                   </SelectTrigger>
@@ -443,13 +700,21 @@ export function AgentForm({ mode, initialData }: AgentFormProps) {
                     ))}
                   </SelectContent>
                 </Select>
+                {errors.voice && touched.voice && (
+                  <p className="text-xs text-destructive mt-1">
+                    {errors.voice}
+                  </p>
+                )}
               </div>
 
               <div className="space-y-2">
                 <Label>
                   Prompt <span className="text-destructive">*</span>
                 </Label>
-                <Select value={prompt} onValueChange={setPrompt}>
+                <Select value={prompt} onValueChange={(value) => {
+                  setPrompt(value);
+                  setTouched(prev => ({ ...prev, prompt: true }));
+                }}>
                   <SelectTrigger className="w-full">
                     <SelectValue placeholder="Select prompt" />
                   </SelectTrigger>
@@ -461,13 +726,21 @@ export function AgentForm({ mode, initialData }: AgentFormProps) {
                     ))}
                   </SelectContent>
                 </Select>
+                {errors.prompt && touched.prompt && (
+                  <p className="text-xs text-destructive mt-1">
+                    {errors.prompt}
+                  </p>
+                )}
               </div>
 
               <div className="space-y-2">
                 <Label>
                   Model <span className="text-destructive">*</span>
                 </Label>
-                <Select value={model} onValueChange={setModel}>
+                <Select value={model} onValueChange={(value) => {
+                  setModel(value);
+                  setTouched(prev => ({ ...prev, model: true }));
+                }}>
                   <SelectTrigger className="w-full">
                     <SelectValue placeholder="Select model" />
                   </SelectTrigger>
@@ -479,6 +752,11 @@ export function AgentForm({ mode, initialData }: AgentFormProps) {
                     ))}
                   </SelectContent>
                 </Select>
+                {errors.model && touched.model && (
+                  <p className="text-xs text-destructive mt-1">
+                    {errors.model}
+                  </p>
+                )}
               </div>
 
               <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -749,7 +1027,8 @@ export function AgentForm({ mode, initialData }: AgentFormProps) {
       {/* Sticky bottom save bar */}
       <div className="sticky bottom-0 -mx-6 -mb-6 border-t bg-background px-6 py-4">
         <div className="flex justify-end">
-          <Button onClick={handleSave} disabled={saving}>
+          <Button onClick={() => { if (!validateForm()) return; handleSave(); }}
+            disabled={saving}>
             {saving ? "Saving..." : saveLabel}
           </Button>
         </div>
