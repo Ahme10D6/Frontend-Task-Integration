@@ -48,6 +48,8 @@ import { useReferenceData } from "@/hooks/useReferenceData";
 import { useUpload } from "@/hooks/useUpload";
 import type { Language, Voice, Prompt, Model } from "@/types/reference";
 import type { Attachment } from "@/types/attachment";
+import { api } from "@/lib/api";
+import { toast } from "react-hot-toast";
 
 interface UploadedFile {
   name: string;
@@ -133,6 +135,27 @@ interface AgentFormProps {
   initialData?: AgentFormInitialData;
 }
 
+interface AgentPayload {
+  name: string;
+  description: string;
+  callType: string;
+  language: string;
+  voice: string;
+  prompt: string;
+  model: string;
+  latency: number;
+  speed: number;
+  callScript: string;
+  serviceDescription: string;
+  attachments: string[];
+  tools: {
+    allowHangUp: boolean;
+    allowCallback: boolean;
+    liveTransfer: boolean;
+  };
+}
+
+
 export function AgentForm({ mode, initialData }: AgentFormProps) {
   // Reference Data Hooks for dropdowns
   const {
@@ -166,6 +189,12 @@ export function AgentForm({ mode, initialData }: AgentFormProps) {
   const [latency, setLatency] = useState([initialData?.latency ?? 0.5]);
   const [speed, setSpeed] = useState([initialData?.speed ?? 110]);
   const [description, setDescription] = useState(initialData?.description ?? "");
+  const [allowHangUp, setAllowHangUp] = useState(false);
+  const [allowCallback, setAllowCallback] = useState(false);
+  const [liveTransfer, setLiveTransfer] = useState(false);
+  const [agentId, setAgentId] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+
 
   // Call Script
   const [callScript, setCallScript] = useState(initialData?.callScript ?? "");
@@ -203,11 +232,11 @@ export function AgentForm({ mode, initialData }: AgentFormProps) {
   const handleFiles = useCallback(
     async (files: FileList | null) => {
       if (!files) return;
-  
+
       for (const file of Array.from(files)) {
         const ext = "." + file.name.split(".").pop()?.toLowerCase();
         if (!ACCEPTED_TYPES.includes(ext)) continue;
-  
+
         try {
           const uploaded = await uploadFile(file);
           setAttachments(prev => [...prev, uploaded]);
@@ -218,11 +247,49 @@ export function AgentForm({ mode, initialData }: AgentFormProps) {
     },
     [uploadFile]
   );
-  
+
+  const handleSave = async () => {
+    const payload: AgentPayload = {
+      name: agentName,
+      description,
+      callType,
+      language,
+      voice,
+      prompt,
+      model,
+      latency: latency[0],
+      speed: speed[0],
+      callScript,
+      serviceDescription,
+      attachments: attachments.map(f => f.id),
+      tools: {
+        allowHangUp,
+        allowCallback,
+        liveTransfer,
+      },
+    };
+
+    setSaving(true);
+    try {
+      if (mode === "create") {
+        const { data } = await api.post("/agents", payload);
+        setAgentId(data.id);
+        toast.success("Agent created successfully!");
+      } else if (mode === "edit" && agentId) {
+        await api.put(`/agents/${agentId}`, payload);
+        toast.success("Agent updated successfully!");
+      }
+    } catch (error) {
+      toast.error("Failed to save agent.");
+      console.error(error);
+    } finally {
+      setSaving(false);
+    }
+  };
 
   const removeFile = useCallback((index: number) => {
     setAttachments(prev => prev.filter((_, i) => i !== index));
-  }, [setAttachments]);  
+  }, [setAttachments]);
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
@@ -247,7 +314,9 @@ export function AgentForm({ mode, initialData }: AgentFormProps) {
     <div className="flex flex-1 flex-col gap-6 p-6">
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold">{heading}</h1>
-        <Button>{saveLabel}</Button>
+        <Button onClick={handleSave} disabled={saving}>
+          {saving ? "Saving..." : saveLabel}
+        </Button>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -455,8 +524,8 @@ export function AgentForm({ mode, initialData }: AgentFormProps) {
               {/* Drop zone */}
               <div
                 className={`relative rounded-lg border-2 border-dashed p-8 text-center transition-colors ${isDragging
-                    ? "border-primary bg-primary/5"
-                    : "border-muted-foreground/25"
+                  ? "border-primary bg-primary/5"
+                  : "border-muted-foreground/25"
                   }`}
                 onDragOver={handleDragOver}
                 onDragLeave={handleDragLeave}
@@ -535,7 +604,7 @@ export function AgentForm({ mode, initialData }: AgentFormProps) {
                       Select if you would like to allow the agent to hang up the call
                     </FieldDescription>
                   </FieldContent>
-                  <Switch id="switch-hangup" />
+                  <Switch id="switch-hangup" checked={allowHangUp} onCheckedChange={setAllowHangUp} />
                 </Field>
               </FieldLabel>
               <FieldLabel htmlFor="switch-callback">
@@ -546,7 +615,7 @@ export function AgentForm({ mode, initialData }: AgentFormProps) {
                       Select if you would like to allow the agent to make callbacks
                     </FieldDescription>
                   </FieldContent>
-                  <Switch id="switch-callback" />
+                  <Switch id="switch-callback" checked={allowCallback} onCheckedChange={setAllowCallback} />
                 </Field>
               </FieldLabel>
               <FieldLabel htmlFor="switch-transfer">
@@ -557,7 +626,7 @@ export function AgentForm({ mode, initialData }: AgentFormProps) {
                       Select if you want to transfer the call to a human agent
                     </FieldDescription>
                   </FieldContent>
-                  <Switch id="switch-transfer" />
+                  <Switch id="switch-transfer" checked={liveTransfer} onCheckedChange={setLiveTransfer} />
                 </Field>
               </FieldLabel>
             </FieldGroup>
@@ -641,7 +710,9 @@ export function AgentForm({ mode, initialData }: AgentFormProps) {
       {/* Sticky bottom save bar */}
       <div className="sticky bottom-0 -mx-6 -mb-6 border-t bg-background px-6 py-4">
         <div className="flex justify-end">
-          <Button>{saveLabel}</Button>
+          <Button onClick={handleSave} disabled={saving}>
+            {saving ? "Saving..." : saveLabel}
+          </Button>
         </div>
       </div>
     </div>
