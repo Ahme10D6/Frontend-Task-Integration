@@ -45,7 +45,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useReferenceData } from "@/hooks/useReferenceData";
+import { useUpload } from "@/hooks/useUpload";
 import type { Language, Voice, Prompt, Model } from "@/types/reference";
+import type { Attachment } from "@/types/attachment";
 
 interface UploadedFile {
   name: string;
@@ -150,6 +152,10 @@ export function AgentForm({ mode, initialData }: AgentFormProps) {
     loading: modelsLoading,
   } = useReferenceData<Model>("models");
 
+  // Upload Hook
+  const { uploadFile, uploading } = useUpload();
+  const [attachments, setAttachments] = useState<Attachment[]>([]);
+
   // Form state — initialized from initialData when provided
   const [agentName, setAgentName] = useState(initialData?.agentName ?? "");
   const [callType, setCallType] = useState(initialData?.callType ?? "");
@@ -168,7 +174,6 @@ export function AgentForm({ mode, initialData }: AgentFormProps) {
   const [serviceDescription, setServiceDescription] = useState(initialData?.serviceDescription ?? "");
 
   // Reference Data
-  const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -194,26 +199,30 @@ export function AgentForm({ mode, initialData }: AgentFormProps) {
     ".xls",
   ];
 
+  // File upload handler
   const handleFiles = useCallback(
-    (files: FileList | null) => {
+    async (files: FileList | null) => {
       if (!files) return;
-      const newFiles: UploadedFile[] = [];
-      for (let i = 0; i < files.length; i++) {
-        const file = files[i];
+  
+      for (const file of Array.from(files)) {
         const ext = "." + file.name.split(".").pop()?.toLowerCase();
-        if (ACCEPTED_TYPES.includes(ext)) {
-          newFiles.push({ name: file.name, size: file.size, file });
+        if (!ACCEPTED_TYPES.includes(ext)) continue;
+  
+        try {
+          const uploaded = await uploadFile(file);
+          setAttachments(prev => [...prev, uploaded]);
+        } catch {
+          // error handled in hook
         }
       }
-      setUploadedFiles((prev) => [...prev, ...newFiles]);
     },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    []
+    [uploadFile]
   );
+  
 
-  const removeFile = (index: number) => {
-    setUploadedFiles((prev) => prev.filter((_, i) => i !== index));
-  };
+  const removeFile = useCallback((index: number) => {
+    setAttachments(prev => prev.filter((_, i) => i !== index));
+  }, [setAttachments]);  
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
@@ -478,18 +487,18 @@ export function AgentForm({ mode, initialData }: AgentFormProps) {
               </div>
 
               {/* File list */}
-              {uploadedFiles.length > 0 ? (
+              {attachments.length > 0 ? (
                 <div className="space-y-2">
-                  {uploadedFiles.map((f, i) => (
+                  {attachments.map((f, i) => (
                     <div
                       key={i}
                       className="flex items-center justify-between rounded-md border px-3 py-2"
                     >
                       <div className="flex items-center gap-2 min-w-0">
                         <FileText className="h-4 w-4 shrink-0 text-muted-foreground" />
-                        <span className="text-sm truncate">{f.name}</span>
+                        <span className="text-sm truncate">{f.fileName}</span>
                         <span className="text-xs text-muted-foreground shrink-0">
-                          {formatFileSize(f.size)}
+                          {formatFileSize(f.fileSize)}
                         </span>
                       </div>
                       <Button
