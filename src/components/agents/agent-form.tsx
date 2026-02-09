@@ -196,6 +196,7 @@ export function AgentForm({ mode, initialData }: AgentFormProps) {
   const [saving, setSaving] = useState(false);
 
 
+
   // Call Script
   const [callScript, setCallScript] = useState(initialData?.callScript ?? "");
 
@@ -211,6 +212,7 @@ export function AgentForm({ mode, initialData }: AgentFormProps) {
   const [testLastName, setTestLastName] = useState("");
   const [testGender, setTestGender] = useState("");
   const [testPhone, setTestPhone] = useState("");
+  const [calling, setCalling] = useState(false);
 
   // Badge counts for required fields
   const basicSettingsMissing = [agentName, callType, language, voice, prompt, model].filter(
@@ -284,6 +286,43 @@ export function AgentForm({ mode, initialData }: AgentFormProps) {
       console.error(error);
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleTestCall = async () => {
+    if (!agentId) {
+      // لو agent مش متحفظ بعد
+      await handleSave();
+      if (!agentId) {
+        toast.error("Agent must be saved before test call.");
+        return;
+      }
+    }
+
+    if (!testFirstName || !testLastName || !testPhone || !testGender) {
+      toast.error("Please fill all test call fields.");
+      return;
+    }
+
+    setCalling(true);
+    try {
+      const { data } = await api.post(`/agents/${agentId}/test-call`, {
+        firstName: testFirstName,
+        lastName: testLastName,
+        gender: testGender,
+        phoneNumber: testPhone,
+      });
+
+      if (data.success) {
+        toast.success(`Test call initiated (ID: ${data.callId})`);
+      } else {
+        toast.error("Test call failed to start.");
+      }
+    } catch (error) {
+      toast.error("Test call failed.");
+      console.error(error);
+    } finally {
+      setCalling(false);
     }
   };
 
@@ -696,9 +735,9 @@ export function AgentForm({ mode, initialData }: AgentFormProps) {
                     />
                   </div>
 
-                  <Button className="w-full">
+                  <Button className="w-full" onClick={handleTestCall} disabled={calling}>
                     <Phone className="mr-2 h-4 w-4" />
-                    Start Test Call
+                    {calling ? "Calling..." : "Start Test Call"}
                   </Button>
                 </div>
               </CardContent>
