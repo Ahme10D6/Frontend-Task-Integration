@@ -44,6 +44,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { useReferenceData } from "@/hooks/useReferenceData";
+import type { Language, Voice, Prompt, Model } from "@/types/reference";
 
 interface UploadedFile {
   name: string;
@@ -52,6 +54,7 @@ interface UploadedFile {
 }
 
 function formatFileSize(bytes: number): string {
+
   if (bytes < 1024) return bytes + " B";
   if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + " KB";
   return (bytes / (1024 * 1024)).toFixed(1) + " MB";
@@ -93,9 +96,8 @@ function CollapsibleSection({
                   </Badge>
                 )}
                 <ChevronDown
-                  className={`h-5 w-5 text-muted-foreground transition-transform duration-200 ${
-                    open ? "rotate-180" : ""
-                  }`}
+                  className={`h-5 w-5 text-muted-foreground transition-transform duration-200 ${open ? "rotate-180" : ""
+                    }`}
                 />
               </div>
             </div>
@@ -130,6 +132,24 @@ interface AgentFormProps {
 }
 
 export function AgentForm({ mode, initialData }: AgentFormProps) {
+  // Reference Data Hooks for dropdowns
+  const {
+    data: languages,
+    loading: languagesLoading,
+  } = useReferenceData<Language>("languages");
+  const {
+    data: voices,
+    loading: voicesLoading,
+  } = useReferenceData<Voice>("voices");
+  const {
+    data: prompts,
+    loading: promptsLoading,
+  } = useReferenceData<Prompt>("prompts");
+  const {
+    data: models,
+    loading: modelsLoading,
+  } = useReferenceData<Model>("models");
+
   // Form state — initialized from initialData when provided
   const [agentName, setAgentName] = useState(initialData?.agentName ?? "");
   const [callType, setCallType] = useState(initialData?.callType ?? "");
@@ -278,10 +298,11 @@ export function AgentForm({ mode, initialData }: AgentFormProps) {
                     <SelectValue placeholder="Select language" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="en">English</SelectItem>
-                    <SelectItem value="ar">Arabic</SelectItem>
-                    <SelectItem value="fr">French</SelectItem>
-                    <SelectItem value="es">Spanish</SelectItem>
+                    {languages.map((language) => (
+                      <SelectItem key={language.id} value={language.id}>
+                        {language.name}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
@@ -295,12 +316,14 @@ export function AgentForm({ mode, initialData }: AgentFormProps) {
                     <SelectValue placeholder="Select voice" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="alloy">Alloy</SelectItem>
-                    <SelectItem value="echo">Echo</SelectItem>
-                    <SelectItem value="fable">Fable</SelectItem>
-                    <SelectItem value="onyx">Onyx</SelectItem>
-                    <SelectItem value="nova">Nova</SelectItem>
-                    <SelectItem value="shimmer">Shimmer</SelectItem>
+                    {voices.map(voice => (
+                      <SelectItem key={voice.id} value={voice.id}>
+                        <div className="flex items-center gap-2">
+                          <span>{voice.name}</span>
+                          <Badge variant="secondary">{voice.tag}</Badge>
+                        </div>
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
@@ -314,10 +337,11 @@ export function AgentForm({ mode, initialData }: AgentFormProps) {
                     <SelectValue placeholder="Select prompt" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="default">Default Prompt</SelectItem>
-                    <SelectItem value="sales">Sales Prompt</SelectItem>
-                    <SelectItem value="support">Support Prompt</SelectItem>
-                    <SelectItem value="custom">Custom Prompt</SelectItem>
+                    {prompts.map((prompt) => (
+                      <SelectItem key={prompt.id} value={prompt.id}>
+                        {prompt.name}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
@@ -331,9 +355,11 @@ export function AgentForm({ mode, initialData }: AgentFormProps) {
                     <SelectValue placeholder="Select model" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="pro">Pro</SelectItem>
-                    <SelectItem value="standard">Standard</SelectItem>
-                    <SelectItem value="flex">Flex</SelectItem>
+                    {models.map((model) => (
+                      <SelectItem key={model.id} value={model.id}>
+                        {model.name}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
@@ -419,11 +445,10 @@ export function AgentForm({ mode, initialData }: AgentFormProps) {
             <div className="space-y-4">
               {/* Drop zone */}
               <div
-                className={`relative rounded-lg border-2 border-dashed p-8 text-center transition-colors ${
-                  isDragging
+                className={`relative rounded-lg border-2 border-dashed p-8 text-center transition-colors ${isDragging
                     ? "border-primary bg-primary/5"
                     : "border-muted-foreground/25"
-                }`}
+                  }`}
                 onDragOver={handleDragOver}
                 onDragLeave={handleDragLeave}
                 onDrop={handleDrop}
