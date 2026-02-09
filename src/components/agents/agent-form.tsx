@@ -426,15 +426,7 @@ export function AgentForm({ mode, initialData }: AgentFormProps) {
         initialSnapshotRef.current = getSnapshot();
       }
     } catch (error) {
-      void Swal.fire({
-        toast: true,
-        position: "top-end",
-        icon: "error",
-        title: "Failed to save agent.",
-        showConfirmButton: false,
-        timer: 4000,
-        timerProgressBar: true,
-      });
+      // User-friendly error shown by api interceptor
       console.error(error);
     } finally {
       setSaving(false);
@@ -537,15 +529,7 @@ export function AgentForm({ mode, initialData }: AgentFormProps) {
         });
       }
     } catch (error) {
-      void Swal.fire({
-        toast: true,
-        position: "top-end",
-        icon: "error",
-        title: "Test call failed.",
-        showConfirmButton: false,
-        timer: 4000,
-        timerProgressBar: true,
-      });
+      // User-friendly error shown by api interceptor
       console.error(error);
     } finally {
       setCalling(false);
