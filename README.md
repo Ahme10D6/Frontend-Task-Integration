@@ -281,6 +281,12 @@ Replace all hardcoded `<SelectItem>` lists in the Basic Settings section with da
 - **Prompt** dropdown → `GET /api/prompts`
 - **Model** dropdown → `GET /api/models`
 
+#### Solution
+
+- Implemented a reusable hook `useReferenceData` to fetch `languages`, `voices`, `prompts`, and `models` from the mock API.
+- Wired the Basic Settings dropdowns in `AgentForm` to use this hook and render dynamic `<SelectItem>` options.
+- Displayed the `voice.tag` value as a badge next to each voice option.
+
 ### Task 2: Implement file upload
 
 Replace the current client-side-only file handling with the 3-step upload flow:
@@ -291,6 +297,12 @@ Replace the current client-side-only file handling with the 3-step upload flow:
 
 Show upload progress or status indicators for each file.
 
+#### Solution
+
+- Created a dedicated upload hook and handler helpers in `agent-form/handlers.ts` to orchestrate the 3‑step upload flow.
+- Integrated the upload logic into `ReferenceFilesSection`, showing the current list of uploaded attachments.
+- Surface upload state via an `uploading` flag so the UI can indicate progress/disabled states during upload.
+
 ### Task 3: Implement save agent
 
 Wire up the **Save Agent** button to `POST /api/agents`:
@@ -299,6 +311,12 @@ Wire up the **Save Agent** button to `POST /api/agents`:
 - Show a success toast/notification on save
 - Store the returned agent `id` so subsequent saves use `PUT /api/agents/:id`
 
+#### Solution
+
+- Added a `saveAgent` helper in `agent-form/handlers.ts` that calls `POST /api/agents` on first save and `PUT /api/agents/:id` on subsequent saves.
+- Constructed a strongly typed `AgentPayload` from the `AgentForm` state and passed it to `saveAgent`.
+- On success, store the returned `agentId` in component state and reset the “dirty” snapshot so unsaved-changes logic stays accurate.
+
 ### Task 4: Implement test call
 
 Wire up the **Start Test Call** button:
@@ -306,6 +324,12 @@ Wire up the **Start Test Call** button:
 - If the agent has unsaved changes, auto-save first (POST or PUT)
 - Then call `POST /api/agents/:id/test-call` with the test call form data
 - Show the call status to the user
+
+#### Solution
+
+- Implemented `startTestCall` in `agent-form/handlers.ts` to call `POST /api/agents/:id/test-call` with the test-call form data.
+- The `onTestCall` handler in `AgentForm` auto-saves the agent (using `saveAgent`) if no `agentId` exists before starting the test call.
+- Exposed `calling` state to the UI so the test-call button reflects in‑progress status.
 
 ## Bonus Tasks
 
@@ -316,6 +340,14 @@ These are optional but will positively impact your evaluation:
 - **Error handling** — Display user-friendly error messages for failed API calls
 - **Form validation** — Validate required fields before save, show inline errors
 - **UI/UX improvements** — Any improvements you think enhance the user experience
+
+### Bonus Tasks – Implemented
+
+- **Unsaved changes alert**: Added snapshot-based dirty checking plus a navigation guard that prompts the user with a SweetAlert dialog when leaving with unsaved changes.
+- **Loading states**: Added skeleton loading states for all reference-data dropdowns while API requests are in flight.
+- **Error handling**: Centralized API error handling via the `api` helper and user-friendly SweetAlert messages on failures (e.g. save or test call failures).
+- **Form validation**: Implemented `useAgentFormValidation` to validate required fields, track touched state, and render inline error messages beneath invalid inputs.
+- **UI/UX improvements**: Refactored the large `AgentForm` component into smaller, focused UI components (e.g. `BasicSettingsSection`, `CallScriptSection`, `ServiceDescriptionSection`, `ToolsSection`, `TestCallCard`) to improve readability, reusability, and scalability of the form UI.
 
 ## Evaluation Criteria
 
