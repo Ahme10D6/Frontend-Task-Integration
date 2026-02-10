@@ -6,6 +6,8 @@ This project contains a **Create Agent** page from the Olimi AI dashboard. The U
 
 **Your task:** Integrate the static UI with the provided mock API to make the form fully functional.
 
+**Solutions:** I have updated the Required Tasks to contain the sol for each task.
+
 ## Tech Stack
 
 - **Next.js 16** (App Router)
@@ -47,7 +49,7 @@ Open **http://localhost:3000** — you'll be redirected to the Create Agent page
 
 > **Note:** Both servers must be running simultaneously. Use two terminal windows/tabs.
 
-## Project Structure
+## Updated Project Structure
 
 ```
 ├── db.json                          # Mock database (json-server)
@@ -61,17 +63,37 @@ Open **http://localhost:3000** — you'll be redirected to the Create Agent page
 │   │       └── agents/
 │   │           └── createAgent/
 │   │               └── page.tsx     # Create Agent page
-│   └── components/
-│       ├── agents/
-│       │   └── agent-form.tsx       # ⭐ MAIN FILE — this is where you'll work
-│       ├── ui/                      # shadcn/ui components (do not modify)
-│       ├── app-sidebar.tsx          # Sidebar navigation
-│       ├── nav-main.tsx             # Navigation menu
-│       └── nav-user.tsx             # User menu
+│   ├── components/
+│   │   ├── agents/
+│   │   │   ├── agent-form.tsx       # Main AgentForm container (state/orchestration)
+│   │   │   └── agent-form/
+│   │   │       ├── handlers.ts      # save agent / upload / test-call helpers
+│   │   │       └── components/      # UI sections (refactored for readability)
+│   │   │           ├── CollapsibleSection.tsx
+│   │   │           ├── BasicSettingsSection.tsx
+│   │   │           ├── CallScriptSection.tsx
+│   │   │           ├── ServiceDescriptionSection.tsx
+│   │   │           ├── ReferenceFilesSection.tsx
+│   │   │           ├── ToolsSection.tsx
+│   │   │           └── TestCallCard.tsx
+│   │   ├── ui/                      # shadcn/ui components (do not modify)
+│   │   ├── app-sidebar.tsx          # Sidebar navigation
+│   │   ├── nav-main.tsx             # Navigation menu
+│   │   └── nav-user.tsx             # User menu
+│   ├── hooks/
+│   │   ├── useReferenceData.ts      # Fetch dropdown reference data
+│   │   ├── useUpload.ts             # 3-step upload flow
+│   │   └── useAgentFormValidation.ts# Form validation + touched tracking
+│   ├── lib/
+│   │   ├── api.ts                   # Axios client + error toast interceptor
+│   │   └── utils.ts                 # Shared utilities + constants
+│   └── types/
+│       ├── agentForm.ts             # AgentForm types (props/payload)
+│       ├── attachment.ts            # Attachment type
+│       └── reference.ts             # Reference data types (language/voice/etc)
 └── .env.example                     # Environment template
 ```
 
-The primary file you'll be modifying is **`src/components/agents/agent-form.tsx`**. You may create helper files (hooks, utilities, API clients) as needed.
 
 ## API Documentation
 
@@ -348,20 +370,3 @@ These are optional but will positively impact your evaluation:
 - **Error handling**: Centralized API error handling via the `api` helper and user-friendly SweetAlert messages on failures (e.g. save or test call failures).
 - **Form validation**: Implemented `useAgentFormValidation` to validate required fields, track touched state, and render inline error messages beneath invalid inputs.
 - **UI/UX improvements**: Refactored the large `AgentForm` component into smaller, focused UI components (e.g. `BasicSettingsSection`, `CallScriptSection`, `ServiceDescriptionSection`, `ToolsSection`, `TestCallCard`) to improve readability, reusability, and scalability of the form UI.
-
-## Evaluation Criteria
-
-| Area | What we look for |
-|------|-----------------|
-| **Code quality** | Clean, readable, well-organized code |
-| **React patterns** | Proper use of hooks, state management, component composition |
-| **API integration** | Correct HTTP methods, error handling, loading states |
-| **TypeScript** | Proper typing, interfaces, type safety |
-| **Error handling** | Graceful failures, user feedback, edge cases |
-| **Attention to detail** | Following instructions, matching existing code style |
-
-## Time Expectation
-
-This task is designed to take approximately **2–3 hours**. Focus on completing the required tasks well rather than rushing through the bonus tasks.
-
-Good luck!
